@@ -478,8 +478,13 @@ def main(stdscr):
     curses.curs_set(0)
     curses.noecho()
     curses.cbreak()
+    curses.nonl()         
+    curses.set_escdelay(1) 
     stdscr.keypad(True)
     stdscr.timeout(50)
+    stdscr.leaveok(True)
+    stdscr.idlok(True) 
+    stdscr.idcok(True) 
     
     if curses.has_colors():
         curses.start_color()
@@ -588,7 +593,7 @@ def main(stdscr):
         elif len(active_fish) < 6 and random.random() < 0.02:
             spawn_random_fish(caught_names, active_fish, w, h)
 
-        stdscr.clear()
+        stdscr.erase() 
         draw_border(stdscr, w, h)
         
         if show_decor:
@@ -596,7 +601,8 @@ def main(stdscr):
         for f in active_fish: f.draw(stdscr, w, h)
             
         draw_info(stdscr, w, h, len(active_fish), show_decor)
-        stdscr.refresh()
+        stdscr.noutrefresh()
+        curses.doupdate()
         time.sleep(0.04)
 
     curses.curs_set(1)

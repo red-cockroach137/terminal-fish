@@ -14,6 +14,7 @@ A terminal-based fishing game suite written in Python and Bash. Catch fish, buil
 | `fish_tank_colors.py.en` | Live aquarium — watch your caught fish swim around + colors for the terminal with faded corals |
 | `set_language.py` | Language switcher (EN / RU / ZH / JA) |
 | `install.sh` | Installer — sets everything up in one command |
+| `kitty_fish_record.dat` | full file for aquarium (without fishing) |
 
 ---
 
@@ -62,12 +63,9 @@ fish_tank
 
 # Open the live aquarium + colors
 fish_tank_color
-
-# Switch language at any time
-set_language
 ```
 
-### If 
+### If you only need an aquarium with all the fish already in stock:
 ```
 cp kitty_fish_record.dat ~/.kitty_fish_record.dat
 ```
@@ -162,14 +160,20 @@ To reset your progress:
 rm ~/.kitty_fish_record.dat
 ```
 
+To delete all:
+```bash
+bash delete_sad_fish.sh
+```
+
 ---
 
 ## 💛 Support the Project
 
 If you enjoy Terminal Fish and want to say thanks — crypto donations are welcome:
 
+TON:
 ```
-TON:  UQBHycodO_bwdPW96UB1wuEPqHcpao-kbQBEkjnrZ3KzRkaW
+UQBHycodO_bwdPW96UB1wuEPqHcpao-kbQBEkjnrZ3KzRkaW
 ```
 
 Terminal Fish is free and always will be. ✌️

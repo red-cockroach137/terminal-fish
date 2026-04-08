@@ -2,7 +2,7 @@
 # TERMINAL_FISH_LANG=en
 # ─────────────────────────────────────────────────────────────────
 #  Terminal Fish — FishDex Module
-#  Usage: python3 fish_dex.py
+#  Usage: python3 fish_book.py
 # ─────────────────────────────────────────────────────────────────
 import curses, os, time
 
