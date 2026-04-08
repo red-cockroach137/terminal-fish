@@ -1,0 +1,579 @@
+#!/usr/bin/env python3
+# TERMINAL_FISH_LANG=en
+# ─────────────────────────────────────────────────────────────────
+#  Terminal Fish — FishDex Module
+#  Usage: python3 fish_dex.py
+# ─────────────────────────────────────────────────────────────────
+import curses, os, time
+
+RECORD_FILE = os.path.expanduser("~/.kitty_fish_record.dat")
+
+ALL_FISH = [
+    ("fish", 0), ("who", 0), ("comrade", 0), ("lil_bro", 0), ("baby_shark", 0), ("smoking_fish", 0),
+    ("cooperatish", 1), ("piranha", 1), ("smiling_fish", 1), ("flat_earthism", 1), ("bigboy", 1), ("sea_horse", 1),
+    ("horse_of_sea", 2), ("UFO?", 2), ("f_117", 2), ("dummy", 2),
+    ("shark_sniffer", 3), ("skull", 3), ("dolphy", 3), ("crush", 3),
+    ("shank_fish", 4), ("closed_claw", 4), ("Bubbie", 4), ("mrs_puff", 4)
+]
+
+FISH_MAX_SIZE = {
+    "fish": 10, "who": 15, "comrade": 20, "lil_bro": 9, "baby_shark": 30, "smoking_fish": 20,
+    "cooperatish": 23, "piranha": 20, "smiling_fish": 24, "flat_earthism": 19, "bigboy": 43, "sea_horse": 15,
+    "horse_of_sea": 20, "UFO?": 24, "f_117": 29, "dummy": 31,
+    "shark_sniffer": 47, "skull": 33, "dolphy": 39, "crush": 48,
+    "shank_fish": 500, "closed_claw": 505, "Bubbie": 510, "mrs_puff": 515
+}
+
+RARITY_NAMES = ["Common", "Uncommon", "Rare", "Epic", "Legendary"]
+RARITY_STARS = ["*", "**", "***", "****", "*****"]
+
+# =============================================================
+# SOURCE ARTS
+# =============================================================
+FISH_ART = {
+    "fish": [r"     __v_ ", r"    (____\/{"],
+    "who": [r"   ;,//;,    ,;/ ", r"  o:::::::;;/// ", r" >::::::::;;\\\ ", r"   ''\\\\\\' ';\ "],
+    "comrade": [r"[bug]     /\"*._         _ ", r"      .-*'`    `*-.._.-'/ ", r"    < * ))     ,       ( ", r"      `*-._`._(__.-*\"`.\ "],
+    "lil_bro": [r"               O  o ", r"          _\_   o ", r" >('>   \/  o\ . ", r"       //\___=- ", r"           '' "],
+    "baby_shark": [r"      . ", r"\_____\)_____ ", r"/--v____ __`< ", r"        )/ ", r"        ' "],
+    "smoking_fish": [r" |\  \\_____  o ", r" | \_/    o \   o ", r" >  _  ((   <--oo ", r" | / \__+___/ ", r" |/     |/"],
+    "cooperatish": [r"       /`·.¸ ", r"      /¸...¸`:· ", r"  ¸.·´  ¸   `·.¸.·´) ", r": © ):´;      ¸  { ", r" `·.¸ `·  ¸.·´\`·¸) ", r"     `\´´\¸.·´ "],
+    "piranha": [r"       /\ ", r"     _/./ ", r"  ,-'    `-:..-'/ ", r": o )      _  ( ", r"`w-....,--; `-.\ ", r"    `' "],
+    "smiling_fish": [r"o           //        + ", r" o        //////    ++ ", r"  .    @):):):):):)+++ ", r"   .}:<<:):):):):):++ ", r"       <<\\:):):):)+++ ", r"          \   \   ++ ", r"                      + "],
+    "flat_earthism": [r"     |\    o ", r"    |  \    o ", r"|\ /    .\ o ", r"| |       ( ", r"|/ \     / ", r"    |  / ", r"     |/"],
+    "bigboy": [r" o ", r"o      ______/~/~/~/__           /(( ", r"  o  // __            ====__    /_(( ", r" o  //  @))       ))))      ===/__(( ", r"    ))           )))))))        __(( ", r"    \     \)     ))))    __===\ __(( ", r"     \_______________====      \__(( ", r"                                 \(( "],
+    "sea_horse": [r" O ", r"O ", r" o  \\``/ ", r"    /o `)) ", r"   /_/\_ss)) ", r"       |_ss))/| ", r"      |__ss))_| ", r"     |__sss))_| ", r"     |___ss))\| ", r"      |_ss)) ", r"       )_s)) ", r" (`(  /_s)) ", r"  (_\/_s)) ", r"   (\/)) "],
+    "horse_of_sea": [r"      \/)/) ", r"    _'  oo(_.-. ", r"  /'.     .---' ", r"/'-./    ( ", r")     ; __\ ", r"\_.'\ : __| ", r"     )  _/ ", r"    (  (,. ", r"     '-.-' "],
+    "UFO?": [r"      _______ ", r" ,-~~~       ~~~-, ", r"(                 ) ", r" \_-, , , , , ,-_/ ", r"    / / | | \ \ ", r"    | | | | | | ", r"    | | | | | | ", r"   / / /   \ \ \ ", r"   | | |   | | | "],
+    "f_117": [r"   ,-----. ", r"  /____  / ", r" /     \/ _ ", r"/ O     \/ | ", r">          | ", r"\ <)    /\_| ", r" \____/\       ", r"  \      \ ", r"   `-----' "],
+    "dummy": [r"       o                 o ", r"                  o ", r"         o   ______      o ", r"           _/  (   \_ ", r" _       _/  (       \_  O ", r"| \_   _/  (   (    0  \ ", r"|== \_/  (   (          | ", r"|=== _ (   (   (        | ", r"|==_/ \_ (   (          | ", r"|_/     \_ (   (    \__/ ", r"          \_ (      _/ ", r"            |  |___/ ", r"           /__/ "],
+    "shark_sniffer": [r" _________         .    . ", r"(..       \_    ,  |\  /| ", r" \       O  \  /|  \ \/ / ", r"  \______    \/ |   \  /  ", r"     vvvv\    \ |   /  | ", r"     \^^^^  ==   \_/   | ", r"      `\_   ===    \.  | ", r"      / /\_   \ /      | ", r"      |/   \_  \|      / ", r"             \________/ "],
+    "skull": [r"|\    \ \ \ \ \ \ \      __ ", r"|  \    \ \ \ \ \ \ \   | O~-_ ", r"|   >----|-|-|-|-|-|-|--|  __/ ", r"|  /    / / / / / / /   |__\ ", r"|/     / / / / / / / "],
+    "dolphy": [r"                ;'-. ", r"    `;-._        )  '---.._ ", r"      >  `-.__.-'          `'.__ ", r"     /_.-'-._         _,   ^ ---) ", r"     `       `'------/_.'----``` ", r"                     ` "],
+    "crush": [r"               _,.---.---.---.--.._ ", r"           _.-' `--.`---.`---'-. _,`--.._ ", r"          /`--._ .'.     `.     `,`-.`-._\ ", r"         ||   \  `.`---.__`__..-`. ,'`-._/ ", r"    _  ,`\ `-._\   \    `.    `_.-`-._,``-. ", r" ,`   `-_ \/ `-.`--.\    _\_.-'\__.-`-.`-._`. ", r"(_.o> ,--. `._/'--.-`,--`  \_.-'       \`-._ \ ", r" `---'    `._ `---._/__,----`           `-. `-\ ", r"           /_, ,  _..-'                    `-._\ ", r"           \_, \/ ._( ", r"            \_, \/ ._\ ", r"             `._,\/ ._\ ", r"               `._// ./`-._ ", r"                 `-._-_-_.-' "],
+    "shank_fish": [r'                ,"( ', r"               ////\                                 _ ", r"              (//////--,,,,,_____                 ,\" ", r"            _;\"\"\"----/////_______;,,          // ", r"__________;\"o,-------------......\"\"\"\"'`'-._/( ", r"         --'==._.__,;;;;\"\"\"           ____,.-.== ", r"             \"-.:______,...;---\"\"/\"   \"    \( ", r"                 '-._      `-._.                 \\ ", r"                     '-._                          '._ "],
+    "closed_claw": [r"                          ,.---.   ", r"                ,,,,     /    _ `. ", r"                  \\\\  /      \  ) ", r"                  |||| /\/``-.__\/ ", r"                  ::::/\/_ ", r"{{`-.__.- '(`(^^(^^^(^ 9 `.=========' ", r"{{{{{{ { ( ( (  (   (-----:= ", r" {{.-'~~'-.(,(,,(,,,(__6_.'=========.", r"                  ::::\/\ ", r"                  |||| \/\  ,-'/\ ", r"                 ////   \ `` _/  ) ", r"                ''''     \  `   / ", r"                          `---'' "],
+    "Bubbie": [r" ┏╮╭┓╭━━━━━━╮ ", r" ╰╮╭╯┃┈┈┈┈┈┈┃ ", r"  ┃╰━╯┈┈╰╯┈┈┃ ", r"  ┃┈┈┈┈┈┈┈╰━┫ ", r"   --------- "],
+    "mrs_puff": [r"                           . ", r"                           A       ; ", r"                 |   ,--,-/ \---,-/|  , ", r"                _|\\,'. /|      /|   `/|-. ", r"            \\`.'    /|      ,            `.; ", r"           ,'\   A     A         A   A _ /| `.; ", r"         ,/  _              A       _  / _   /|  ; ", r"        /\  / \   ,  ,           A  /    /     `/| ", r"       /_| | _ \         ,     ,             ,/  \ ", r"      // | |/ `.\  ,-      ,       ,   ,/ ,/      \/ ", r"      / @| |@  / /'   \  \      ,              >  /|    ,--. ", r"     |\\_/   \_/ /      |  |           ,  ,/        \  ./' __:.. ", r"     |  __ __  |       |  | .--.  ,         >  >   |-'   /     ` ", r"   ,/| /  '  \ |       |  |     \      ,           |    / ", r"  /  |<--.__,->|       |  | .    `.        >  >    /   ( ", r"/_,' \\  ^  /  \     /  /   `.    >--            /^\   | ", r"      \\___/    \   /  /      \__'     \   \   \/   \  | ", r"       `.   |/          ,  ,                  /`\    \  ) ", r"         \  '  |/    ,       V    \          /        `-\ ", r"          `|/  '  V      V           \    \.'            \_ ", r"           '`-.       V       V        \./'\ ", r"               `|/-.      \ /   \ /,---`\            ", r"                /   `._____V_____V' ", r"                           '     ' "]
+}
+
+# =============================================================
+# 3-FRAME ANIMATION
+# For complex arts — 3 identical frames (can be improved)
+# =============================================================
+def make_frames(art, eye_changes=None, detail_changes=None):
+    """Creates 3 frames: original, with eye changes, with detail changes"""
+    frames = [art[:]]  # Frame 1: original
+    
+    # Frame 2: change eyes
+    frame2 = []
+    for line in art:
+        if eye_changes:
+            for old, new in eye_changes:
+                line = line.replace(old, new)
+        frame2.append(line)
+    frames.append(frame2)
+    
+    # Frame 3: change details
+    frame3 = []
+    for line in art:
+        if detail_changes:
+            for old, new in detail_changes:
+                line = line.replace(old, new)
+        frame3.append(line)
+    frames.append(frame3)
+    
+    return frames
+
+# Simple animations for fish
+FISH_FRAMES = {}
+
+# Common
+FISH_FRAMES["fish"] = make_frames(FISH_ART["fish"], [("v_", "V_")], [("/{", "/{~")])
+FISH_FRAMES["who"] = make_frames(FISH_ART["who"], [("o:", "⊙:")], [(">", "=")])
+FISH_FRAMES["comrade"] = make_frames(FISH_ART["comrade"], [("[bug]", "[fix]")], [("*", "☆")])
+FISH_FRAMES["lil_bro"] = make_frames(FISH_ART["lil_bro"], [("('>", "($>")], [("o\\", "o~")])
+FISH_FRAMES["baby_shark"] = make_frames(FISH_ART["baby_shark"], [("v_", "V_")], [("__`<", "__`~")])
+FISH_FRAMES["smoking_fish"] = make_frames(FISH_ART["smoking_fish"], [("--", "==")], [("o", "x")])
+
+# Uncommon
+FISH_FRAMES["cooperatish"] = make_frames(FISH_ART["cooperatish"], [("©", "◉")], [("¸", "~")])
+FISH_FRAMES["piranha"] = make_frames(FISH_ART["piranha"], [("o )", "O )")], [("w-", "^-")])
+FISH_FRAMES["smiling_fish"] = make_frames(FISH_ART["smiling_fish"], [(":)", ":(")], [("++", "~~")])
+FISH_FRAMES["flat_earthism"] = make_frames(FISH_ART["flat_earthism"], [("o ", "* ")], [("o ", "o~")])
+FISH_FRAMES["bigboy"] = make_frames(FISH_ART["bigboy"], [("@))", "0))")], [("((", "(~")])
+FISH_FRAMES["sea_horse"] = make_frames(FISH_ART["sea_horse"], [("o  \\", "0  \\")], [("ss", "SS")])
+
+# Rare
+FISH_FRAMES["horse_of_sea"] = make_frames(FISH_ART["horse_of_sea"], [("oo", "oO")], [("\\/)/)", "(\\(\\")])
+FISH_FRAMES["UFO?"] = make_frames(FISH_ART["UFO?"], [("/   \\", "/cow\\")], [(", ,", ",?,")])
+FISH_FRAMES["f_117"] = make_frames(FISH_ART["f_117"], [("O ", "0 ")], [(" <)", " (>")])
+FISH_FRAMES["dummy"] = make_frames(FISH_ART["dummy"], [("0  \\", "o  \\")], [(" ______ ", "{｡^◕‿◕^｡}")])
+
+# Epic
+FISH_FRAMES["shark_sniffer"] = make_frames(FISH_ART["shark_sniffer"], [("O  \\", "✪  \\")], [("vvvv", "^^^^")])
+FISH_FRAMES["skull"] = make_frames(FISH_ART["skull"], [("O~-", "骨-")], [("----|-|-|-|-|-|-|--", "----骨-骨-骨-骨-骨-")])
+FISH_FRAMES["dolphy"] = make_frames(FISH_ART["dolphy"], [("^ ---", "ッ ---")], [("'.", "'~")])
+FISH_FRAMES["crush"] = make_frames(FISH_ART["crush"], [("--", "==")], [(",", "♡")])
+
+# Legendary
+FISH_FRAMES["shank_fish"] = make_frames(FISH_ART["shank_fish"], [("--", "==")], [("-------------", "✠-✠-✠-✠-✠-✠-✠")])
+FISH_FRAMES["closed_claw"] = make_frames(FISH_ART["closed_claw"], [("=========", "⊐⊐⊐⊐⊐⊐⊐⊐⊐")], [("(", "∑")])
+FISH_FRAMES["Bubbie"] = make_frames(FISH_ART["Bubbie"], [("┈┈", "~~")], [("╰━", "╰~")])
+FISH_FRAMES["mrs_puff"] = make_frames(FISH_ART["mrs_puff"], [("|", "⊥")], [("@", "|")])
+
+# =============================================================
+# CORALS
+# =============================================================
+CORAL_L = [" | ", "/|\\", " | ", "/| ", " | "]
+CORAL_R = [" |\\ ", " | \\", " |  ", " |/ ", " |  "]
+
+# Your green coral (braille symbols)
+CORAL_M = [
+    "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+    "⠀⠀⠀⠀⠀⠐⠀⠀⠈⣶⣾⣢⡀⡀⠀⠐⠀⠀⠀⠀⢀⠀⢀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+    "⠀⠀⠀⠀⠀⠀⠀⠈⣿⢷⣿⢿⣞⡗⡆⠀⠀⠀⠐⣵⣝⣄⣇⣣⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+    "⠀⠀⠀⠀⠀⠀⠀⠰⣭⣷⢾⣾⣿⠿⡂⠀⠀⢄⣠⡶⢿⡽⣾⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+    "⠀⠀⠀⠀⠀⠀⠀⣠⣞⣿⣿⣿⡝⣦⡀⠀⠀⣴⣗⡿⣽⢿⣽⡏⣒⡼⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+    "⠀⠀⠀⠀⠀⠀⢚⡼⣷⣿⣿⡩⣻⣟⠇⠀⠀⠀⠙⠹⠽⣿⣿⣫⣟⠋⠀⠀⠀⠀⠀⠀⠐⢀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+    "⠀⠀⠀⠀⠀⠀⠐⣯⣽⢾⣽⣿⣿⠇⠀⠀⠀⠀⠀⡠⣴⣿⣿⡟⠁⠀⠀⢀⣀⠀⠀⠀⡀⢰⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+    "⠀⠀⠀⠀⠀⠀⠀⢐⢻⢿⣿⡏⠀⢠⣒⡌⣮⣾⣷⣵⣿⢿⣿⡇⠀⠀⢀⣶⡻⠀⠀⠸⣿⣾⣿⢅⢠⢄⠀⠀⠀⠀⠀⠀⠀⠀",
+    "⠀⠀⠀⠀⠸⣶⣧⣸⣽⣿⣻⣧⣠⣽⣷⣿⠎⢹⣯⣯⣽⣿⣻⣮⠀⢀⣲⣯⣾⠍⠀⠸⣾⣟⣿⢛⣿⢾⣿⠀⠀⠀⠀⠀⠀⠀",
+    "⠀⠀⢐⡶⢀⠞⢻⠷⣿⣿⣿⣟⣯⣿⡟⠁⠀⠈⢙⢿⣷⣻⣿⣿⢀⣾⣿⣟⡇⣤⠀⠀⡚⣿⡿⣿⣿⠟⠀⠀⠀⡀⠀⠀⠀⠀",
+    "⠈⠀⣸⣗⣾⣇⠀⠁⠛⣿⣾⡟⢻⣴⡄⠀⠈⠰⣦⣶⣻⣿⣽⣿⣿⠟⠛⠈⠈⣿⣗⡀⢸⣿⣿⡙⠈⠀⢠⣠⣲⣿⠇⠀⠀⠀",
+    "⠀⢽⣽⡿⣟⠛⢤⣶⡔⣿⣿⣿⣾⣿⣿⣲⣄⢀⣹⣿⡿⣿⣿⢻⢱⣶⡀⠀⢀⣐⣿⣷⣿⣿⣿⣦⣰⣤⡜⣿⣽⣯⠀⠀⠀⠀",
+    "⠀⠀⠘⣿⣯⣤⠀⣿⢿⢿⣷⣿⣾⣿⣿⣿⡇⢻⣿⣻⣿⣿⣿⣷⣿⠋⣀⢀⣼⣿⣟⣿⣿⣷⣿⡿⠟⡵⣿⣿⣿⣿⣷⠆⠀⠀",
+    "⠐⠀⣠⠩⣿⣿⣿⣿⢾⢉⣿⣿⣿⣼⣿⡏⢱⣠⣭⢹⣷⣿⣿⣛⣄⣩⣾⣧⠐⣿⣟⣾⣿⣿⣿⡅⠀⢠⣿⣿⣿⠉⡀⠀⠀⠀",
+    "⠀⠘⢻⣽⣘⣿⣾⢿⣇⣾⣿⣽⣿⡿⠂⠀⠈⢻⣿⣿⣿⣽⣿⣿⣿⡿⢿⡟⣏⢕⣿⣿⣿⣿⣿⣿⣾⣿⣿⣏⣶⠷⢟⠀⠀⠀",
+    "⠀⠀⠀⠉⢛⣽⢟⣿⡿⣿⣯⣿⣿⣷⡀⠀⣀⡐⡽⢷⣿⣿⣻⡟⠝⢁⢥⣾⣿⣲⣻⣿⣾⣿⣿⣿⠿⣿⡻⣿⡿⠷⠟⠁⠀⠀",
+    "⠀⠀⠀⠀⠘⠟⢻⢛⢟⢻⣯⣷⣿⣿⣷⡐⣿⣿⡣⢿⣿⣿⣿⣿⢄⠙⣾⣽⣽⠛⣿⣿⣯⣿⣿⣿⣿⢉⣯⣾⠈⠀⠀⠀⠀⠀",
+    "⠀⠀⠀⠀⠀⣌⡸⢄⠉⣻⣿⡽⣿⣻⣿⣶⣿⣾⣿⣿⢿⣿⣿⢿⣛⣬⢿⣟⣿⣽⢾⣿⣿⣿⣿⡟⢻⣿⢛⠁⠀⠀⠀⠀⠀⠀",
+    "⠈⠀⠀⠀⠘⣾⣞⣷⣷⣿⣿⣽⡟⣹⣏⣾⣿⣻⡿⢿⣻⣫⣵⢾⡟⣿⣻⢿⣟⣿⢿⡯⣯⣿⣻⣾⢬⣲⣣⡧⡄⠀⠀⠀⠀⠀",
+    "⠀⠀⢠⢶⣞⣿⣞⣿⣞⣷⣿⢿⣽⣽⡹⣿⣿⣏⣻⣮⣿⣿⢿⣟⣾⣻⣿⣿⣧⣿⡿⣼⢟⣾⣿⡿⣿⣿⣟⣿⣣⠀⠀⠀⠀⠀",
+    "⠀⠀⠸⣛⣿⣿⣛⣿⣾⣽⣻⣯⣷⢿⣻⢝⡾⢯⣟⣾⡿⣏⣿⣿⡿⡿⣿⡿⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣯⡟⠀⠀⠀⡀",
+]
+
+# =============================================================
+# COLORS
+# =============================================================
+C_BORDER    = 1
+C_TITLE     = 2
+C_DIM       = 3
+C_HIGHLIGHT = 4
+C_SEAWEED   = 6
+C_SPINE     = 7
+C_BAR_FILL  = 8
+C_BAR_EMPTY = 9
+C_CORAL     = 15
+
+def init_colors():
+    curses.start_color()
+    curses.use_default_colors()
+    is256 = curses.COLORS >= 256
+
+    def pair(n, fg, fg8=None):
+        f = fg8 if (is256 and fg8 is not None) else fg
+        try:
+            curses.init_pair(n, f, -1)
+        except Exception:
+            curses.init_pair(n, fg, -1)
+
+    pair(C_BORDER,    curses.COLOR_GREEN,   34)
+    pair(C_TITLE,     curses.COLOR_CYAN,    51)
+    pair(C_DIM,       curses.COLOR_WHITE,   240)
+    pair(C_HIGHLIGHT, curses.COLOR_YELLOW,  220)
+    pair(C_SEAWEED,   curses.COLOR_GREEN,   28)
+    pair(C_SPINE,     curses.COLOR_GREEN,   22)
+    pair(C_BAR_FILL,  curses.COLOR_GREEN,   40)
+    pair(C_BAR_EMPTY, curses.COLOR_WHITE,   236)
+    pair(C_CORAL,     curses.COLOR_GREEN,   34)
+
+    rarity_fg = [
+        (curses.COLOR_WHITE,   250),
+        (curses.COLOR_GREEN,    46),
+        (curses.COLOR_BLUE,     75),
+        (curses.COLOR_MAGENTA, 135),
+        (curses.COLOR_YELLOW,  220),
+    ]
+    for i, (fg, fg8) in enumerate(rarity_fg):
+        pair(10 + i, fg, fg8)
+        bg8 = fg8 if is256 else fg
+        try:
+            curses.init_pair(20 + i, curses.COLOR_BLACK, bg8)
+        except Exception:
+            curses.init_pair(20 + i, curses.COLOR_BLACK, fg)
+
+# =============================================================
+# UTILITIES
+# =============================================================
+def safe_addstr(win, y, x, text, attr=0):
+    h, w = win.getmaxyx()
+    if y < 0 or y >= h or x < 0 or x >= w:
+        return
+    clip = w - x - 1
+    if clip <= 0:
+        return
+    try:
+        win.addstr(y, x, str(text)[:clip], attr)
+    except curses.error:
+        pass
+
+def draw_box(win, y, x, h, w, attr, double_top=False):
+    tl = '╔' if double_top else '┌'
+    tr = '╗' if double_top else '┐'
+    safe_addstr(win, y,     x,     tl + '─'*(w-2) + tr, attr)
+    safe_addstr(win, y+h-1, x,     '└' + '─'*(w-2) + '┘', attr)
+    for dy in range(1, h-1):
+        safe_addstr(win, y+dy, x,     '│', attr)
+        safe_addstr(win, y+dy, x+w-1, '│', attr)
+
+def draw_seaweed(win, x, bot_y, height, color):
+    for i in range(min(height, bot_y)):
+        row = bot_y - 1 - i
+        off = 1 if (i // 2) % 2 == 0 else -1
+        safe_addstr(win, row, x+off, '|', curses.color_pair(color) | curses.A_DIM)
+    for i in range(0, min(height, bot_y), 3):
+        row = bot_y - 1 - i
+        off = 2 if (i // 3) % 2 == 0 else -2
+        safe_addstr(win, row, x+off, '~', curses.color_pair(color) | curses.A_DIM)
+
+def get_rating(length, max_len):
+    if not length: return "?"
+    p = length / max_len * 100
+    if p >= 100: return "SSS"
+    if p >= 90:  return "SS"
+    if p >= 75:  return "S"
+    if p >= 60:  return "A"
+    if p >= 45:  return "B"
+    if p >= 30:  return "C"
+    if p >= 15:  return "D"
+    return "F"
+
+def rating_color(r):
+    return {
+        "SSS": C_HIGHLIGHT, "SS": C_HIGHLIGHT, "S": C_HIGHLIGHT,
+        "A": C_HIGHLIGHT, "B": C_BORDER, "C": C_BORDER,
+        "D": C_DIM, "F": C_DIM, "?": C_DIM
+    }.get(r, C_DIM)
+
+def load_fish_data():
+    fish = {}
+    if not os.path.exists(RECORD_FILE):
+        return fish
+    with open(RECORD_FILE, 'r', encoding='utf-8', errors='ignore') as f:
+        for line in f:
+            parts = line.strip().split('|')
+            if len(parts) >= 3:
+                name, length, date = parts[0], parts[1], parts[2]
+                if name in FISH_FRAMES and length.isdigit():
+                    ln = int(length)
+                    ml = FISH_MAX_SIZE.get(name, 100)
+                    fish[name] = {
+                        'length': ln, 'date': date,
+                        'rarity': next((r for n, r in ALL_FISH if n == name), 0),
+                        'max_size': ml, 'rating': get_rating(ln, ml)
+                    }
+    return fish
+
+# =============================================================
+# CATALOG
+# =============================================================
+COLS = 3
+ROWS = 4
+CARD_W = 13
+CARD_H = 6
+
+def draw_catalog(win, fish_data, selected, page):
+    h, w = win.getmaxyx()
+    win.erase()
+
+    fps = COLS * ROWS * 2
+    total_pages = max(1, (len(ALL_FISH) + fps - 1) // fps)
+    start_idx   = page * fps
+
+    # Header
+    draw_box(win, 0, 0, 3, w, curses.color_pair(C_BORDER) | curses.A_BOLD, double_top=True)
+    title = "  F I S H D E X  "
+    safe_addstr(win, 1, (w - len(title)) // 2, title, curses.color_pair(C_TITLE) | curses.A_BOLD)
+    caught_txt = f"{len(fish_data)}/{len(ALL_FISH)} caught"
+    safe_addstr(win, 1, w - len(caught_txt) - 3, caught_txt, curses.color_pair(C_DIM))
+    safe_addstr(win, 1, 3, f"[ {page+1} / {total_pages} ]", curses.color_pair(C_DIM))
+
+    cy0    = 3
+    ch     = h - cy0 - 2
+    spine  = w // 2 - 1
+
+    # Book spine
+    for y in range(cy0, cy0 + ch):
+        safe_addstr(win, y, spine, '║', curses.color_pair(C_SPINE) | curses.A_BOLD)
+
+    # Seaweed
+    sw_h = min(ch - 1, 12)
+    for sx in [3, spine-4, spine+4, w-5]:
+        draw_seaweed(win, sx, cy0+ch-1, sw_h, C_SEAWEED)
+
+    safe_addstr(win, cy0, 2,        "◄ PAGE I",  curses.color_pair(C_DIM)|curses.A_DIM)
+    safe_addstr(win, cy0, spine+2,  "PAGE II ►", curses.color_pair(C_DIM)|curses.A_DIM)
+
+    # Cards
+    for side in range(2):
+        ps     = [1, spine+1][side]
+        pw     = [spine-1, w-spine-2][side]
+        offset = side * COLS * ROWS
+        col_step = (pw - 2) // COLS
+
+        for i in range(COLS * ROWS):
+            gi = start_idx + offset + i
+            if gi >= len(ALL_FISH): break
+            name, rarity = ALL_FISH[gi]
+            row, col = divmod(i, COLS)
+            cx = ps + 1 + col * col_step
+            cy = cy0 + 1 + row * (CARD_H + 1)
+            if cy + CARD_H >= cy0 + ch: continue
+
+            caught   = name in fish_data
+            sel      = (gi == selected)
+            rp       = 10 + rarity
+            rp_sel   = 20 + rarity
+
+            ba = curses.color_pair(rp_sel)|curses.A_BOLD if sel else \
+                 curses.color_pair(rp)|curses.A_BOLD     if caught else \
+                 curses.color_pair(C_DIM)|curses.A_DIM
+            ta = curses.color_pair(rp_sel)|curses.A_BOLD if sel else \
+                 curses.color_pair(rp)                   if caught else \
+                 curses.color_pair(C_DIM)|curses.A_DIM
+
+            cw = min(CARD_W, col_step-1)
+            draw_box(win, cy, cx, CARD_H, cw, ba)
+            safe_addstr(win, cy, cx+1, f"#{gi+1}", ba|curses.A_DIM)
+
+            if caught:
+                d  = fish_data[name]
+                rt = d['rating']
+                ic = ["~","~~","~~~","~~~~","***"][rarity]
+                safe_addstr(win, cy+1, cx+(cw-len(ic))//2,   ic,     curses.color_pair(rp)|curses.A_BOLD)
+                rs = f"[{rt}]"
+                safe_addstr(win, cy+2, cx+(cw-len(rs))//2,   rs,     curses.color_pair(rating_color(rt))|curses.A_BOLD)
+                ls = f"{d['length']}cm"
+                safe_addstr(win, cy+3, cx+(cw-len(ls))//2,   ls,     ta)
+                safe_addstr(win, cy+4, cx+1,                  name[:cw-2], ta|curses.A_DIM)
+            else:
+                safe_addstr(win, cy+1, cx+(cw-3)//2, "???",   ba)
+                safe_addstr(win, cy+3, cx+(cw-5)//2, "???cm", ba)
+                safe_addstr(win, cy+4, cx+1,          name[:cw-2], ba|curses.A_DIM)
+
+    hy = h - 2
+    safe_addstr(win, hy,   0, "─"*w, curses.color_pair(C_BORDER)|curses.A_DIM)
+    safe_addstr(win, hy+1, 0, " ←→↑↓ navigate | PgUp/PgDn — page | Enter — details | Q — quit", curses.color_pair(C_DIM))
+    win.refresh()
+
+# =============================================================
+# DETAIL POPUP — centered over catalog
+# =============================================================
+def draw_detail_popup(win, name, data, frame):
+    sh, sw = win.getmaxyx()
+    pw = min(80, sw - 4)
+    ph = min(35, sh - 4)
+    px = (sw - pw) // 2
+    py = (sh - ph) // 2
+
+    rarity = data['rarity']
+    rp     = 10 + rarity
+    ra     = curses.color_pair(rp) | curses.A_BOLD
+    da     = curses.color_pair(C_DIM)
+    ca     = curses.color_pair(C_CORAL) | curses.A_BOLD
+
+    # Fill popup background
+    for y in range(py, py+ph):
+        safe_addstr(win, y, px, ' '*pw, da)
+
+    draw_box(win, py, px, ph, pw, ra, double_top=True)
+
+    # Title
+    title = f" {RARITY_STARS[rarity]}  {name}  {RARITY_STARS[rarity]} "
+    safe_addstr(win, py+1, px + (pw-len(title))//2, title, ra)
+    rname = f"[ {RARITY_NAMES[rarity]} ]"
+    safe_addstr(win, py+2, px + (pw-len(rname))//2, rname, curses.color_pair(rp)|curses.A_DIM)
+    safe_addstr(win, py+3, px+1, '─'*(pw-2), curses.color_pair(C_BORDER)|curses.A_DIM)
+
+    # === CORAL FIRST (background layer) ===
+    coral_y = py + ph - len(CORAL_M) - 1
+    coral_x = px + (pw - len(CORAL_M[0])) // 2
+
+    for i, line in enumerate(CORAL_M):
+        if coral_y + i < py + ph - 1:
+            safe_addstr(win, coral_y + i, coral_x, line, ca | curses.A_DIM)  # A_DIM for background
+
+    # === FISH SECOND (foreground layer) ===
+    frames = FISH_FRAMES.get(name, [["[no art]"]])
+    art    = frames[frame % len(frames)]
+    art_w  = pw // 2 - 4
+    art_y0 = py + 5
+    max_art_rows = ph - 10
+
+    for i, line in enumerate(art[:max_art_rows]):
+        line = line.rstrip().ljust(art_w)
+        ax = px + 2 + max(0, (art_w - len(line)) // 2)
+        safe_addstr(win, art_y0+i, ax, line, ra | curses.A_BOLD)  # A_BOLD for foreground
+
+    # Stats — right side
+    sx = px + pw//2 + 1
+    sy = py + 5
+    ml = data['max_size']
+    rt = data['rating']
+    ln = data['length']
+    pct = int(ln / ml * 100)
+
+    def stat(dy, lbl, val, va=None):
+        s = f"{lbl}: "
+        safe_addstr(win, sy+dy, sx, s, da)
+        safe_addstr(win, sy+dy, sx+len(s), str(val), va if va else ra)
+
+    stat(0, "Length",   f"{ln} cm")
+    stat(1, "Max.",     f"{ml} cm", da)
+    stat(2, "Date",     data['date'], da)
+    stat(3, "Rating",   f" {rt} ",
+         curses.color_pair(rating_color(rt))|curses.A_REVERSE|curses.A_BOLD)
+
+    # Progress bar
+    bw = max(8, pw - pw//2 - 5)
+    filled = int(bw * pct / 100)
+    safe_addstr(win, sy+5, sx, f"Progress: {pct}%", da)
+    safe_addstr(win, sy+6, sx,        '█'*filled,        curses.color_pair(C_BAR_FILL)|curses.A_BOLD)
+    safe_addstr(win, sy+6, sx+filled, '░'*(bw-filled),   curses.color_pair(C_BAR_EMPTY)|curses.A_DIM)
+
+    # Hint
+    hint = " Esc / B — close "
+    safe_addstr(win, py+ph-2, px + (pw-len(hint))//2, hint, da)
+
+    win.refresh()
+
+# =============================================================
+# "NOT CAUGHT" POPUP
+# =============================================================
+def draw_unknown_popup(win, name, rarity):
+    sh, sw = win.getmaxyx()
+    ph, pw = 8, 36
+    py = (sh-ph)//2; px = (sw-pw)//2
+    a = curses.color_pair(C_DIM)|curses.A_DIM
+    for y in range(py, py+ph):
+        safe_addstr(win, y, px, ' '*pw, a)
+    draw_box(win, py, px, ph, pw, a)
+    safe_addstr(win, py+1, px+(pw-len(name))//2,  name, a)
+    safe_addstr(win, py+2, px+(pw-14)//2, "~ not caught ~", a)
+    r = f"Rarity: {RARITY_NAMES[rarity]}"
+    safe_addstr(win, py+4, px+(pw-len(r))//2, r, a)
+    hint = "[ any key ]"
+    safe_addstr(win, py+6, px+(pw-len(hint))//2, hint, a)
+    win.refresh()
+    win.getch()
+
+# =============================================================
+# MAIN LOOP
+# =============================================================
+FRAME_INTERVAL = 0.4
+
+def main(stdscr):
+    curses.curs_set(0)
+    curses.noecho()
+    curses.cbreak()
+    stdscr.keypad(True)
+    stdscr.nodelay(True)
+
+    if curses.has_colors():
+        init_colors()
+
+    fish_data   = load_fish_data()
+    selected    = 0
+    page        = 0
+    view        = 'catalog'
+    detail_fish = None
+    anim_frame  = 0
+    last_tick   = time.time()
+    fps         = COLS * ROWS * 2
+
+    draw_catalog(stdscr, fish_data, selected, page)
+
+    while True:
+        now = time.time()
+
+        # Animation in detail popup
+        if view == 'detail' and (now - last_tick) >= FRAME_INTERVAL:
+            anim_frame = (anim_frame + 1) % 3
+            last_tick  = now
+            draw_catalog(stdscr, fish_data, selected, page)
+            draw_detail_popup(stdscr, detail_fish, fish_data[detail_fish], anim_frame)
+
+        key = stdscr.getch()
+        if key == curses.ERR:
+            curses.napms(40)
+            continue
+
+        if key in (ord('q'), ord('Q')):
+            break
+
+        if view == 'catalog':
+            s0 = page * fps
+            s1 = min(s0 + fps, len(ALL_FISH)) - 1
+
+            if   key == curses.KEY_RIGHT:
+                if selected < s1: selected += 1
+                elif (page+1)*fps < len(ALL_FISH):
+                    page += 1; selected = page*fps
+            elif key == curses.KEY_LEFT:
+                if selected > s0: selected -= 1
+                elif page > 0:
+                    page -= 1; selected = min(page*fps+fps-1, len(ALL_FISH)-1)
+            elif key == curses.KEY_DOWN:
+                if selected + COLS <= s1: selected += COLS
+            elif key == curses.KEY_UP:
+                if selected - COLS >= s0: selected -= COLS
+            elif key in (curses.KEY_NPAGE, ord('d'), ord('D')):
+                mp = (len(ALL_FISH)-1)//fps
+                if page < mp: page += 1; selected = page*fps
+            elif key in (curses.KEY_PPAGE, ord('a'), ord('A')):
+                if page > 0: page -= 1; selected = page*fps
+            elif key in (curses.KEY_ENTER, 10, 13):
+                if 0 <= selected < len(ALL_FISH):
+                    name, rarity = ALL_FISH[selected]
+                    if name in fish_data:
+                        detail_fish = name
+                        anim_frame  = 0
+                        last_tick   = time.time()
+                        view = 'detail'
+                        draw_catalog(stdscr, fish_data, selected, page)
+                        draw_detail_popup(stdscr, detail_fish, fish_data[detail_fish], anim_frame)
+                        continue
+                    else:
+                        stdscr.nodelay(False)
+                        draw_unknown_popup(stdscr, name, rarity)
+                        stdscr.nodelay(True)
+
+            # Sync page with selection
+            np = selected // fps
+            if np != page: page = np
+
+            draw_catalog(stdscr, fish_data, selected, page)
+
+        elif view == 'detail':
+            if key in (27, ord('b'), ord('B')):
+                view = 'catalog'
+                draw_catalog(stdscr, fish_data, selected, page)
+
+    # Farewell
+    stdscr.nodelay(False)
+    stdscr.clear()
+    sh, sw = stdscr.getmaxyx()
+    bye = "~  See you, fisherman!  ~"
+    safe_addstr(stdscr, sh//2, (sw-len(bye))//2, bye, curses.color_pair(C_TITLE)|curses.A_BOLD)
+    stdscr.refresh()
+    curses.napms(600)
+
+if __name__ == "__main__":
+    try:
+        curses.wrapper(main)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        os.system("tput cnorm 2>/dev/null")
+        os.system("tput rmcup 2>/dev/null")

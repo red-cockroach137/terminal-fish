@@ -1,0 +1,615 @@
+#!/usr/bin/env python3
+# TERMINAL_FISH_LANG=en
+# ─────────────────────────────────────────────────────────────────
+#  Terminal Fish — FishDex Module
+#  Usage: fish_tank.py
+# ─────────────────────────────────────────────────────────────────
+
+import curses, random, time, os
+
+RECORD_FILE = os.path.expanduser("~/.kitty_fish_record.dat")
+
+# === DIRECTIONS: -1 = left, 1 = right ===
+FIXED_DIRS = {
+    "fish": -1, "who": -1, "comrade": -1, "lil_bro": 1, "baby_shark": 1, "smoking_fish": 1,
+    "cooperatish": -1, "piranha": -1, "smiling_fish": -1, "flat_earthism": 1, "bigboy": -1, "sea_horse": -1,
+    "horse_of_sea": 1, "UFO?": 1, "f_117": -1, "dummy": 1,
+    "shark_sniffer": -1, "skull": 1, "dolphy": 1, "Crush": -1,
+    "shank_fish": -1, "closed_claw": 1, "Bubbie": 1, "mrs_puff": -1
+}
+
+# === FISH RARITY (0=Common ... 4=Legendary) ===
+FISH_RARITY = {
+    "fish": 0, "who": 0, "comrade": 0, "lil_bro": 0, "baby_shark": 0, "smoking_fish": 0,
+    "cooperatish": 1, "piranha": 1, "smiling_fish": 1, "flat_earthism": 1, "bigboy": 1, "sea_horse": 1,
+    "horse_of_sea": 2, "UFO?": 2, "f_117": 2, "dummy": 2,
+    "shark_sniffer": 3, "skull": 3, "dolphy": 3, "Crush": 3,
+    "shank_fish": 4, "closed_claw": 4, "Bubbie": 4, "mrs_puff": 4
+}
+
+# === FISH ASCII ART ===
+FISH_ART = {
+    "fish":  
+        [r"     __v_ ", 
+         r"    (____\/{"],
+    "who":  
+        [r"   ;,//;,    ,;/ ", 
+         r"  o:::::::;;/// ", 
+         r" >::::::::;;\\\ ", 
+         r"   ''\\\\\\' ';\ "],
+    "comrade":  
+        [r"[bug]     /\"*._         _ ", 
+         r"      .-*'`    `*-.._.-'/ ", 
+         r"    < * ))     ,       ( ", 
+         r"      `*-._`._(__.-*\"`.\ "],
+    "lil_bro":  
+        [r"               O  o ", 
+         r"          _\_   o ", 
+         r" >('>   \/  o\ . ", 
+         r"       //\___=- ", 
+         r"           '' "],
+    "baby_shark":  
+        [r"      . ", 
+         r"\_____\)_____ ", 
+         r"/--v____ __`< ", 
+         r"        )/ ", 
+         r"        ' "],
+    "smoking_fish":  
+        [r" |\  \\_____  o ", 
+         r" | \_/    o \   o ", 
+         r" >  _  ((   <--oo ", 
+         r" | / \__+___/ ", 
+         r" |/     |/"],
+    "cooperatish": 
+        [r"       /`·.¸ ", 
+         r"      /¸...¸`:· ", 
+         r"  ¸.·´  ¸   `·.¸.·´) ", 
+         r": © ):´;      ¸  { ", 
+         r" `·.¸ `·  ¸.·´\`·¸) ", 
+         r"     `\´´\¸.·´ "],
+    "piranha":  
+        [r"       /\ ", 
+         r"     _/./ ", 
+         r"  ,-'    `-:..-'/ ", 
+         r": o )      _  ( ", 
+         r"`w-....,--; `-.\ ", 
+         r"    `' "],
+    "smiling_fish": 
+        [r"o           //        + ", 
+         r" o        //////    ++ ", 
+         r"  .    @):):):):):)+++ ", 
+         r"   .}:<<:):):):):):++ ", 
+         r"       <<\\:):):):)+++ ", 
+         r"          \   \   ++ ", 
+         r"                      + "],
+    "flat_earthism": 
+        [r"     |\    o ", 
+         r"    |  \    o ", 
+         r"|\ /    .\ o ", 
+         r"| |       ( ", 
+         r"|/ \     / ", 
+         r"    |  / ", 
+         r"     |/"],
+    "bigboy": 
+        [r" o ", 
+         r"o      ______/~/~/~/__           /(( ", 
+         r"  o  // __            ====__    /_(( ", 
+         r" o  //  @))       ))))      ===/__(( ", 
+         r"    ))           )))))))        __(( ", 
+         r"    \     \)     ))))    __===\ __(( ", 
+         r"     \_______________====      \__(( ", 
+         r"                                 \(( "],
+    "sea_horse": 
+        [r" O ", 
+         r"O ", 
+         r" o  \\``/ ", 
+         r"    /o `)) ", 
+         r"   /_/\_ss)) ", 
+         r"       |_ss))/| ", 
+         r"      |__ss))_| ", 
+         r"     |__sss))_| ", 
+         r"     |___ss))\| ", 
+         r"      |_ss)) ", 
+         r"       )_s)) ", 
+         r" (`(  /_s)) ", 
+         r"  (_\/_s)) ", 
+         r"   (\/)) "],
+    "horse_of_sea":  
+        [r"      \/)/) ", 
+         r"    _'  oo(_.-. ", 
+         r"  /'.     .---' ", 
+         r"/'-./    ( ", 
+         r")     ; __\ ", 
+         r"\_.'\ : __| ", 
+         r"     )  _/ ", 
+         r"    (  (,. ", 
+         r"     '-.-' "],
+    "UFO?":  
+        [r"      _______ ", 
+         r" ,-~~~       ~~~-, ", 
+         r"(                 ) ", 
+         r" \_-, , , , , ,-_/ ", 
+         r"    / / | | \ \ ", 
+         r"    | | | | | | ", 
+         r"    | | | | | | ", 
+         r"   / / /   \ \ \ ", 
+         r"   | | |   | | | "],
+    "f_117":  
+        [r"   ,-----. ", 
+         r"  /____  / ", 
+         r" /     \/ _ ", 
+         r"/ O     \/ | ", 
+         r">          | ", 
+         r"\ <)    /\_| ", 
+         r" \____/\       ", 
+         r"  \      \ ", 
+         r"   `-----' "],
+    "dummy":  
+        [r"       o                 o ", 
+         r"                  o ", 
+         r"         o   ______      o ", 
+         r"           _/  (   \_ ", 
+         r" _       _/  (       \_  O ", 
+         r"| \_   _/  (   (    0  \ ", 
+         r"|== \_/  (   (          | ", 
+         r"|=== _ (   (   (        | ", 
+         r"|==_/ \_ (   (          | ", 
+         r"|_/     \_ (   (    \__/ ", 
+         r"          \_ (      _/ ", 
+         r"            |  |___/ ", 
+         r"           /__/ "],
+    "shark_sniffer":  
+        [r" _________         .    . ", 
+         r"(..       \_    ,  |\  /| ", 
+         r" \       O  \  /|  \ \/ / ", 
+         r"  \______    \/ |   \  /  ", 
+         r"     vvvv\    \ |   /  | ", 
+         r"     \^^^^  ==   \_/   | ", 
+         r"      `\_   ===    \.  | ", 
+         r"      / /\_   \ /      | ", 
+         r"      |/   \_  \|      / ", 
+         r"             \________/ "],
+    "skull":  
+        [r"|\    \ \ \ \ \ \ \      __ ", 
+         r"|  \    \ \ \ \ \ \ \   | O~-_ ", 
+         r"|   >----|-|-|-|-|-|-|--|  __/ ", 
+         r"|  /    / / / / / / /   |__\ ", 
+         r"|/     / / / / / / / "],
+    "dolphy":  
+        [r"                ;'-. ", 
+         r"    `;-._        )  '---.._ ", 
+         r"      >  `-.__.-'          `'.__ ", 
+         r"     /_.-'-._         _,   ^ ---) ", 
+         r"     `       `'------/_.'----``` ", 
+         r"                     ` "],
+    "Crush":  
+        [r"               _,.---.---.---.--.._ ", 
+         r"           _.-' `--.`---.`---'-. _,`--.._ ", 
+         r"          /`--._ .'.     `.     `,`-.`-._\ ", 
+         r"         ||   \  `.`---.__`__..-`. ,'`-._/ ", 
+         r"    _  ,`\ `-._\   \    `.    `_.-`-._,``-. ", 
+         r" ,`   `-_ \/ `-.`--.\    _\_.-'\__.-`-.`-._`. ", 
+         r"(_.o> ,--. `._/'--.-`,--`  \_.-'       \`-._ \ ", 
+         r" `---'    `._ `---._/__,----`           `-. `-\ ", 
+         r"           /_, ,  _..-'                    `-._\ ", 
+         r"           \_, \/ ._( ", 
+         r"            \_, \/ ._\ ", 
+         r"             `._,\/ ._\ ", 
+         r"               `._// ./`-._ ", 
+         r"                 `-._-_-_.-' "],
+    "shank_fish":  
+        [r'                ,"( ', 
+         r"               ////\                                 _ ", 
+         r"              (//////--,,,,,_____                 ,\" ", 
+         r"            _;\"\"\"----/////_______;,,          // ", 
+         r"__________;\"o,-------------......\"\"\"\"'`'-._/( ", 
+         r"         --'==._.__,;;;;\"\"\"           ____,.-.== ", 
+         r"             \"-.:______,...;---\"\"/\"   \"    \( ", 
+         r"                 '-._      `-._.                 \\ ", 
+         r"                     '-._                          '._ "],
+    "closed_claw":  
+        [r"                          ,.---.   ", 
+         r"                ,,,,     /    _ `. ", 
+         r"                  \\\\  /      \  ) ", 
+         r"                  |||| /\/``-.__\/ ", 
+         r"                  ::::/\/_ ", 
+         r"{{`-.__.- '(`(^^(^^^(^ 9 `.=========' ", 
+         r"{{{{{{ { ( ( (  (   (-----:= ", 
+         r" {{.-'~~'-.(,(,,(,,,(__6_.'=========.", 
+         r"                  ::::\/\ ", 
+         r"                  |||| \/\  ,-'/\ ", 
+         r"                 ////   \ `` _/  ) ", 
+         r"                ''''     \  `   / ", 
+         r"                          `---'' "],
+    "Bubbie":  
+        [r" ┏╮╭┓╭━━━━━━╮ ", 
+         r" ╰╮╭╯┃┈┈┈┈┈┈┃ ", 
+         r"  ┃╰━╯┈┈╰╯┈┈┃ ", 
+         r"  ┃┈┈┈┈┈┈┈╰━┫ ", 
+         r"   --------- "],
+    "mrs_puff":  
+        [r"                           . ", 
+         r"                           A       ; ", 
+         r"                 |   ,--,-/ \---,-/|  , ", 
+         r"                _|\\,'. /|      /|   `/|-. ", 
+         r"            \\`.'    /|      ,            `.; ", 
+         r"           ,'\   A     A         A   A _ /| `.; ", 
+         r"         ,/  _              A       _  / _   /|  ; ", 
+         r"        /\  / \   ,  ,           A  /    /     `/| ", 
+         r"       /_| | _ \         ,     ,             ,/  \ ", 
+         r"      // | |/ `.\  ,-      ,       ,   ,/ ,/      \/ ", 
+         r"      / @| |@  / /'   \  \      ,              >  /|    ,--. ", 
+         r"     |\\_/   \_/ /      |  |           ,  ,/        \  ./' __:.. ", 
+         r"     |  __ __  |       |  | .--.  ,         >  >   |-'   /     ` ", 
+         r"   ,/| /  '  \ |       |  |     \      ,           |    / ", 
+         r"  /  |<--.__,->|       |  | .    `.        >  >    /   ( ", 
+         r"/_,' \\  ^  /  \     /  /   `.    >--            /^\   | ", 
+         r"      \\___/    \   /  /      \__'     \   \   \/   \  | ", 
+         r"       `.   |/          ,  ,                  /`\    \  ) ", 
+         r"         \  '  |/    ,       V    \          /        `-\ ", 
+         r"          `|/  '  V      V           \    \.'            \_ ", 
+         r"           '`-.       V       V        \./'\ ", 
+         r"               `|/-.      \ /   \ /,---`\            ", 
+         r"                /   `._____V_____V' ", 
+         r"                           '     ' "]
+}
+
+# === DECOR: 3 coral/seaweed variants ===
+DECOR_ARTS = [
+    [
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⢷⣤⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⢰⡗⠀⠀⢠⡀⣠⡄⠀⠈⣿⠀⠀⠀⢀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠸⢶⣤⣄⢿⡇⠀⠀⠈⣿⠏⠀⠀⠀⣿⡀⠀⣴⠟⠁⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠙⠻⣿⣦⡀⢸⡏⠀⠀⠀⠀⢹⣇⣼⣏⣀⣀⣠⣤⡦⠀⠀⠀⠀",
+        "⠀⠀⠀⢰⣶⡄⠀⠀⠘⢿⣿⣾⣧⠀⠀⠀⠀⣼⣿⠟⠉⠉⠉⢉⡀⠀⠀⠀⠀⠀",
+        "⠀⠘⠷⠶⢿⣿⡄⠀⠀⠀⠙⠿⣿⣦⣄⡀⣼⣿⠃⠀⠰⣦⣀⣸⡇⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠈⣿⣷⠀⠀⠀⢀⠀⠈⠛⠿⣿⣿⡏⠀⠀⠀⠈⣹⡟⠀⠀⣀⣤⣄⠀",
+        "⠀⠀⢠⡶⠟⠻⣿⣧⡀⣰⠏⠀⠀⠀⠀⢸⣿⡇⠀⣀⣠⣾⣯⣶⣶⣾⡏⠁⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠈⠻⣿⣿⣀⠀⠀⠀⠀⠸⣿⣷⣿⣿⣿⣯⣉⡉⠉⠙⢷⡄⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⢿⣷⣦⣄⣠⣾⣿⠋⠀⠀⠀⠈⣩⡿⠷⣤⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠶⠶⣶⡶⠟⠛⠛⢿⣿⡿⠁⠀⠀⠀⠀⣰⡟⠁⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠹⠇⠀⠀⠀⣼⣿⠃⠀⠀⠀⠀⠀⠉⠁⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀  ⠀⠀⠀⠀⠀⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀  ⠀⠀⠀⠀⠀⠀⠀⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
+    ],
+    [
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢰⣶⣶⠀⠀⠀⠀⣶⣶⡆⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⣤⣤⡄⠀⢠⣤⣤⠀⠸⣿⣿⡀⠀⠀⣰⣿⣿⠃⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⣿⣿⣇⣀⣸⣿⣿⠀⠀⠻⣿⣿⣶⣾⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠙⢿⣿⣿⣿⡿⠋⠀⠀⠀⠈⢹⣿⡿⠉⠀⣶⣶⡆⠀⠀⣶⣶⡆",
+        "⠀⠀⠀⠀⢸⣿⣧⡀⠀⠀⠀⠀⠀⣿⣿⡇⠀⠀⢿⣿⣧⣤⣴⣿⣿⠃",
+        "⠀⠀⠀⠀⠈⠻⣿⣿⣶⣶⣶⣶⣶⣿⣿⣷⠀⠀⠈⠛⢿⣿⣿⠟⠋⠀",
+        "⢠⣤⣤⠀⢠⣤⡄⠉⠙⠛⠛⠛⠛⠛⣿⣿⣧⠀⠀⠀⢸⣿⣿⠀⠀⠀",
+        "⢸⣿⣿⣀⣼⣿⡇⠀⠀⠀⠀⠀⠀⠀⢻⣿⣿⡆⠀⢠⣿⣿⠇⠀⠀⠀",
+        "⠀⠻⣿⣿⣿⠟⠁⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⣠⣾⣿⠏⠀⠀⠀⠀",
+        "⠀⠀⠈⢿⣿⣷⣤⣤⣀⣀⣀⣀⣀⣠⣿⣿⣿⣿⣿⡿⠋⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠉⠛⠿⠿⠿⠿⠿⠿⢿⣿⣿⣿⣿⡟⠉⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣠⣾⣿⣿⣿⣿⣀⡀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠴⠿⠿⠿⠿⠿⠿⠿⠿⠿⠷⠄⠀⠀⠀⠀⠀"
+    ],
+    [
+        "⠀⠀⠀⠀⠀⠀⢀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⣇⠈⢂⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠹⣖⣄⠡⠀⠀⠀⢠⣦⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⢳⣼⡆⢣⠀⠀⣿⡏⠆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠹⣄⠈⡀⠀⢸⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠈⢷⠱⠀⠀⢣⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢧⠳⡀⢸⣆⠀⠀⠀⠀⠀⡞⠙⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⣠⡠⢄⡀⠀⠀⠀⠀⠀⠀⠈⣷⠐⡄⣟⡀⠀⠀⠀⢸⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠻⣦⡈⠑⢄⠀⠀⠀⠀⠀⠸⣆⠘⡇⠣⠀⠀⠀⢸⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠈⠙⠲⣤⡀⠀⠀⣴⠢⡀⣿⣤⡧⡂⠀⠀⠀⢸⠧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠉⠻⢷⣼⣆⠀⠹⣿⣷⠝⡀⠀⠀⢸⢰⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⢿⣧⠀⢻⣿⡄⠘⡀⠀⡄⠘⠀⠀⠀⠀⠀⣠⢤⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⡷⣌⢿⣾⣄⠱⣰⠁⡇⠀⠀⠀⠀⣰⣁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⣿⡞⢮⡻⣿⣦⠱⢧⠃⠀⠀⠀⢠⣿⡿⡸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠻⣾⣧⠙⢿⡇⠸⠀⠀⠀⠀⢸⣿⡳⠁⠀⠀⠀⡀⠀⠀⠀⠀⠤⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⣿⣷⡆⠉⠃⡆⠀⠀⢀⢿⣷⠁⠀⠀⢀⠎⠀⠀⠀⠀⠀⠀⠀⠈⠢⡀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⢀⡔⠤⡀⠀⠀⠀⠀⠘⣿⣿⣿⣦⠘⡀⠀⣼⣾⡝⡆⠀⠀⢸⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⡄⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⡠⣮⣳⣆⢄⠢⡤⠖⠋⢀⡘⢿⣿⣿⣇⢱⠀⣿⡇⢧⠃⠀⠀⠈⢳⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⡅⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⢀⡴⠋⢀⣸⣿⠻⣷⣗⠘⣶⣿⣿⣧⠈⢿⣿⣿⡄⣦⡿⠝⠀⠀⠀⠀⠀⢸⣬⢝⡢⠀⠀⡀⣀⣀⣠⠊⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⣴⠏⠀⣤⢏⠀⢻⣧⠸⣿⣧⣌⠻⣿⡞⠀⠸⣿⣿⡏⣿⣧⣇⢰⠀⠀⠀⠀⢸⣾⣀⠈⠉⢒⣿⡯⣁⠘⠷⣄⠀⠀⠀⠀⠀",
+        "⢠⡾⢃⣰⣿⣿⣕⣷⡄⠙⢧⠀⠙⠻⣷⣬⡻⢄⠀⢻⣿⣿⠹⢼⣿⠘⠀⠀⠀⠀⢸⣇⣧⠀⠀⡜⡿⣱⠀⠙⢆⠘⡇⠀⠀⠀⠀",
+        "⠀⠉⠉⠘⠻⢿⣿⣿⣿⣦⡈⢣⠀⠀⢈⣿⣷⣦⡁⠺⣿⣿⣆⣧⢰⡇⠀⠀⠀⠀⢸⡿⠁⠀⣸⢻⡟⠁⠀⠀⣸⡿⠃⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠈⠻⢿⣿⣷⣄⠱⡀⢿⣴⡍⢿⡛⢷⣼⣿⣿⣼⡟⡄⠀⠀⠀⠀⣿⡇⠀⣜⠇⠼⠃⢀⠔⠋⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⢀⠨⢿⣿⣿⣤⣱⡜⣼⣿⣄⢣⠀⠙⣿⣿⣿⡇⢁⠀⠀⠀⢰⣿⢅⢰⣾⠀⠀⢠⠊⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⢀⠔⠁⢀⣼⠷⠛⠁⢠⢹⢌⠻⣿⡜⡎⠀⢿⣿⣿⣇⠜⡀⠀⠀⣸⡗⠠⢯⠇⠂⠴⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⢀⣴⠋⢀⣴⡿⠊⠀⠀⢠⠂⢸⣎⢦⠈⢻⣿⢇⠸⣿⣿⣗⡇⢃⠀⠀⣿⠷⢱⡟⠀⢠⠃⠀⡠⠤⠄⡀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⢠⡟⢁⣴⣿⡞⠀⠀⢀⠔⠁⣐⣁⠿⠋⠀⠀⠀⠀⠀⢻⣿⣿⣇⢿⠀⢸⣟⡤⣿⠁⢀⠃⠀⠀⢧⠀⠀⠈⠒⢄⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠈⠉⢺⣶⠤⠞⣁⠄⠚⡻⠃⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣧⡝⡆⣿⡇⣧⡏⠀⡜⠀⠀⢸⢎⠳⡀⠀⠀⠈⠣⡀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠈⠉⠛⢧⣒⠼⡇⠀⠀⠀⠀⠀⠀⠀⡠⣴⣿⣿⣿⢍⣇⣿⣿⢿⡇⣺⠀⠀⢀⡆⠈⠢⡈⠢⡀⠀⠀⠱⡀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⢷⣧⣄⠀⠀⠀⠀⠤⣪⠖⣿⣿⣿⣿⢫⣾⣿⡌⣿⣡⠇⠀⢀⣼⠀⠀⠀⠈⣒⠬⣷⠤⠤⠮⠂",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠻⣯⡓⢶⡒⢆⠉⠑⠀⢿⣿⣿⣿⣿⣿⡇⣷⣿⣿⠀⢀⣾⠇⠀⣠⠖⡩⠚⠉⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⣿⣄⢻⣄⠱⡀⠀⠘⣿⣿⣿⣿⣿⣻⣿⣿⠇⢠⣿⠓⢀⡜⡡⠊⠀⠀⠀⠀⠀⠀⠀⠀",
+        "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢿⣷⣿⣆⢱⣀⠀⢿⣿⣿⣿⣿⡼⣿⡿⢠⡿⠃⢠⣊⠜⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
+    ]
+]
+
+# === RENDERING: transparent (for corals) ===
+def safe_draw_char(stdscr, y, x, ch, attr):
+    """Draws ONE character, skipping spaces and braille blanks"""
+    if ch == ' ' or ch == '⠀':
+        return
+    if y < 0 or x < 0:
+        return
+    try:
+        stdscr.addch(y, x, ch, attr)
+    except curses.error:
+        pass
+
+def safe_draw_transparent(stdscr, y, x, text, attr):
+    """Transparent line rendering: only visible characters"""
+    if not text or y < 0:
+        return
+    for i, ch in enumerate(text):
+        safe_draw_char(stdscr, y, x + i, ch, attr)
+
+# === RENDERING: solid (for fish) ===
+def draw_solid_art(stdscr, y, x, lines, attr, screen_w):
+    """Draws art with solid color. Trims leading/trailing spaces → color only on visible chars, no black background."""
+    h_screen, w_screen = stdscr.getmaxyx()
+    for i, line in enumerate(lines):
+        cur_y = y + i
+        if cur_y < 1 or cur_y >= h_screen - 1:
+            continue
+        
+        # Count leading spaces and trim both ends
+        original = line
+        line = line.strip()
+        if not line:
+            continue
+        leading = len(original) - len(original.lstrip())
+        
+        # Position adjustment for leading spaces and left edge overflow
+        draw_x = x + leading
+        if draw_x < 0:
+            # Fish enters from left: shift text start
+            start_idx = -draw_x
+            draw_x = 0
+        else:
+            start_idx = 0
+        
+        if start_idx >= len(line):
+            continue
+        
+        segment = line[start_idx:]
+        max_len = screen_w - draw_x - 1
+        if max_len > 0:
+            try:
+                stdscr.addstr(cur_y, draw_x, segment[:max_len], attr)
+            except curses.error:
+                pass
+
+class Decoration:
+    def __init__(self, w, h):
+        self.art = random.choice(DECOR_ARTS)
+        self.h_art = len(self.art)
+        self.w_art = max((len(line) for line in self.art), default=0)
+        self.x = random.randint(2, max(2, w - self.w_art - 2))
+        self.y = h - self.h_art - 2
+
+    def draw(self, stdscr, w, h, visible):
+        if not visible:
+            return
+        attr = curses.color_pair(2) | curses.A_BOLD
+        # ← Corals: transparent rendering
+        for i, line in enumerate(self.art):
+            safe_draw_transparent(stdscr, self.y + i, int(self.x), line, attr)
+
+class Fish:
+    def __init__(self, name, art, direction):
+        self.name = name
+        self.art = art
+        self.direction = direction
+        self.rarity = FISH_RARITY.get(name, 0)
+        self.speed = random.uniform(0.25, 0.6)
+        self.x = 0
+        self.y = 0
+        self.height = len(art)
+        self.width = max((len(l) for l in art), default=0)
+        self.done = False
+
+    def spawn(self, w, h):
+        self.y = random.randint(2, max(2, h - self.height - 4))
+        self.x = -self.width - random.randint(0, 15) if self.direction == 1 else w + random.randint(0, 15)
+        self.done = False
+
+    def update(self, w, h):
+        self.x += self.direction * self.speed
+        if self.direction == 1 and self.x > w + 1:
+            self.done = True
+        elif self.direction == -1 and self.x < -self.width - 1:
+            self.done = True
+
+    def draw(self, stdscr, w, h):
+        if self.done:
+            return
+        # ← Fish: solid rendering (colored inside, no gaps)
+        attr = curses.color_pair(10 + self.rarity) | curses.A_BOLD
+        draw_solid_art(stdscr, int(self.y), int(self.x), self.art, attr, w)
+        
+        # Bubbles
+        if random.random() < 0.015:
+            bx = int(self.x) + (self.width if self.direction == 1 else 0)
+            by = int(self.y) - 1
+            if 0 < by < h-1 and 0 < bx < w-1:
+                try: stdscr.addstr(by, bx, "°", curses.color_pair(3) | curses.A_DIM)
+                except: pass
+
+def load_caught_names():
+    names = []
+    if not os.path.exists(RECORD_FILE):
+        return names
+    with open(RECORD_FILE, 'r', encoding='utf-8', errors='ignore') as f:
+        for line in f:
+            parts = line.strip().split('|')
+            if len(parts) >= 2 and parts[0] in FISH_ART and parts[1].isdigit() and int(parts[1]) > 0:
+                names.append(parts[0])
+    return names
+
+def spawn_random_fish(caught_names, active_fish, w, h):
+    if not caught_names:
+        return
+    name = random.choice(caught_names)
+    direction = FIXED_DIRS.get(name, 1)
+    fish = Fish(name, FISH_ART[name], direction)
+    fish.spawn(w, h)
+    active_fish.append(fish)
+
+def draw_border(stdscr, w, h):
+    attr = curses.color_pair(2) | curses.A_BOLD
+    try:
+        stdscr.addstr(0, 0, "╔" + "═"*(w-2) + "╗", attr)
+        stdscr.addstr(h-1, 0, "╚" + "═"*(w-2) + "╝", attr)
+        for y in range(1, h-1):
+            stdscr.addstr(y, 0, "║", attr)
+            stdscr.addstr(y, w-1, "║", attr)
+    except:
+        pass
+
+def draw_info(stdscr, w, h, count, decor_on):
+    try:
+        status = "🌿 Decor: ON (D=shuffle)" if decor_on else "🪸 Decor: OFF"
+        stdscr.addstr(h-2, 2, f"🐟 On screen: {count} | {status} | 'q'=quit 'r'=refresh", curses.color_pair(4) | curses.A_DIM)
+    except:
+        pass
+
+def main(stdscr):
+    curses.curs_set(0)
+    curses.noecho()
+    curses.cbreak()
+    stdscr.keypad(True)
+    stdscr.timeout(50)
+    
+    if curses.has_colors():
+        curses.start_color()
+        curses.use_default_colors()
+        is_256 = curses.COLORS >= 256
+
+        rarity_colors_256 = [255, 46, 39, 135, 214]
+        rarity_colors_basic = [curses.COLOR_WHITE, curses.COLOR_GREEN, curses.COLOR_BLUE, curses.COLOR_MAGENTA, curses.COLOR_YELLOW]
+
+        for i in range(5):
+            fg = rarity_colors_256[i] if is_256 else rarity_colors_basic[i]
+            try: curses.init_pair(10 + i, fg, -1)
+            except curses.error: pass
+
+        try:
+            curses.init_pair(1, 39 if is_256 else curses.COLOR_CYAN, -1)
+            curses.init_pair(2, 39 if is_256 else curses.COLOR_BLUE, -1)
+            curses.init_pair(3, 250 if is_256 else curses.COLOR_WHITE, -1)
+            curses.init_pair(4, 226 if is_256 else curses.COLOR_YELLOW, -1)
+        except curses.error: pass
+
+    caught_names = load_caught_names()
+    if not caught_names:
+        stdscr.addstr(10, 5, "❌ Catch at least one fish first!", curses.A_BOLD)
+        stdscr.addstr(12, 5, "Press any key to exit...", curses.A_DIM)
+        stdscr.refresh()
+        stdscr.getch()
+        return
+
+    active_fish = []
+    show_decor = True
+    decor_list = []
+    h, w = stdscr.getmaxyx()
+
+    for _ in range(random.randint(2, 4)):
+        spawn_random_fish(caught_names, active_fish, w, h)
+    
+    # Generate decor with overlap check
+    attempts = 0
+    while len(decor_list) < 3 and attempts < 20:
+        new_dec = Decoration(w, h)
+        too_close = False
+        for d in decor_list:
+            if abs(new_dec.x - d.x) < 15 and abs(new_dec.y - d.y) < 3:
+                too_close = True
+                break
+        if not too_close:
+            decor_list.append(new_dec)
+        attempts += 1
+
+    while True:
+        key = stdscr.getch()
+        if key in (ord('q'), ord('Q')):
+            break
+        elif key in (ord('r'), ord('R')):
+            active_fish.clear()
+            h, w = stdscr.getmaxyx()
+            decor_list = []
+            attempts = 0
+            while len(decor_list) < 3 and attempts < 20:
+                new_dec = Decoration(w, h)
+                too_close = False
+                for d in decor_list:
+                    if abs(new_dec.x - d.x) < 15 and abs(new_dec.y - d.y) < 3:
+                        too_close = True
+                        break
+                if not too_close: decor_list.append(new_dec)
+                attempts += 1
+            for _ in range(random.randint(2, 4)):
+                spawn_random_fish(caught_names, active_fish, w, h)
+        elif key in (ord('d'), ord('D')):
+            show_decor = not show_decor
+            if show_decor:
+                decor_list = []
+                attempts = 0
+                while len(decor_list) < 3 and attempts < 20:
+                    new_dec = Decoration(w, h)
+                    too_close = False
+                    for d in decor_list:
+                        if abs(new_dec.x - d.x) < 15 and abs(new_dec.y - d.y) < 3:
+                            too_close = True
+                            break
+                    if not too_close: decor_list.append(new_dec)
+                    attempts += 1
+        elif key == curses.KEY_RESIZE:
+            h, w = stdscr.getmaxyx()
+            decor_list = []
+            attempts = 0
+            while len(decor_list) < 3 and attempts < 20:
+                new_dec = Decoration(w, h)
+                too_close = False
+                for d in decor_list:
+                    if abs(new_dec.x - d.x) < 15 and abs(new_dec.y - d.y) < 3:
+                        too_close = True
+                        break
+                if not too_close: decor_list.append(new_dec)
+                attempts += 1
+            for f in active_fish: f.spawn(w, h)
+            continue
+
+        for f in active_fish: f.update(w, h)
+        active_fish = [f for f in active_fish if not f.done]
+
+        if len(active_fish) < 2:
+            spawn_random_fish(caught_names, active_fish, w, h)
+        elif len(active_fish) < 6 and random.random() < 0.02:
+            spawn_random_fish(caught_names, active_fish, w, h)
+
+        stdscr.clear()
+        draw_border(stdscr, w, h)
+        
+        if show_decor:
+            for d in decor_list: d.draw(stdscr, w, h, True)
+        for f in active_fish: f.draw(stdscr, w, h)
+            
+        draw_info(stdscr, w, h, len(active_fish), show_decor)
+        stdscr.refresh()
+        time.sleep(0.04)
+
+    curses.curs_set(1)
+    try: stdscr.addstr(h//2, max(0, w//2-12), "👋 Aquarium closed!", curses.A_BOLD)
+    except: pass
+    stdscr.refresh()
+    time.sleep(0.3)
+
+if __name__ == "__main__":
+    try:
+        curses.wrapper(main)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        os.system("tput cnorm")
+        os.system("tput rmcup")
