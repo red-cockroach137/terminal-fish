@@ -1,3 +1,6 @@
+
+![Terminal Fish Demo](assets/demo.gif)
+
 # 🐠 Terminal Fish
 
 A terminal-based fishing game suite written in Python and Bash. Catch fish, build your collection, watch them swim in a live aquarium, and browse your FishDex like a Pokédex — all inside your terminal.
